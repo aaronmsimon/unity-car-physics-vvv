@@ -179,6 +179,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3543194987166646609, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
+      propertyPath: carTransform
+      value: 
+      objectReference: {fileID: 476355333}
     - target: {fileID: 3543194987166646611, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
       propertyPath: m_Name
       value: FR
@@ -236,6 +240,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3543194987166646609, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
+      propertyPath: carTransform
+      value: 
+      objectReference: {fileID: 476355333}
     - target: {fileID: 3543194987166646611, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
       propertyPath: m_Name
       value: FL
@@ -293,6 +301,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3543194987166646609, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
+      propertyPath: carTransform
+      value: 
+      objectReference: {fileID: 476355333}
     - target: {fileID: 3543194987166646611, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
       propertyPath: m_Name
       value: RR
@@ -683,6 +695,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3543194987166646609, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
+      propertyPath: carTransform
+      value: 
+      objectReference: {fileID: 476355333}
     - target: {fileID: 3543194987166646611, guid: 814a5668c927ab6459cd73105a619f96, type: 3}
       propertyPath: m_Name
       value: RL
