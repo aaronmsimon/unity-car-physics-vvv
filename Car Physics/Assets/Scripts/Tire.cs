@@ -9,9 +9,15 @@ public class Tire : MonoBehaviour
     [SerializeField] private float springStrength;
     [SerializeField] private float springDamper;
 
+    [Header("Steering")]
+    [SerializeField] [Range(0,1)] private float tireGripFactor;
+    [SerializeField] private float tireMass;
+
     [Header("Debug Options")]
     [SerializeField] private bool showGroundCheckRaycast;
     [SerializeField] private bool showSuspensionForce;
+    [SerializeField] private bool showSteeringForce;
+    [SerializeField] [Range(0,1)] private float forceDistanceScale;
 
     private bool rayDidHit;
     private RaycastHit tireRay;
@@ -28,9 +34,11 @@ public class Tire : MonoBehaviour
 
         // Show Ground Raycast
         if (showGroundCheckRaycast) {
-            Debug.DrawRay(transform.position, Vector3.down * suspensionRestDist, Color.yellow);
+            Debug.DrawRay(transform.position, -transform.up * tireRay.distance, Color.yellow);
         }
+    }
 
+    private void FixedUpdate() {
         // suspension spring force
         if (rayDidHit) {
             ApplySpringForce();
@@ -38,7 +46,7 @@ public class Tire : MonoBehaviour
     }
 
     private void GroundRaycast() {
-        rayDidHit = Physics.Raycast(transform.position, Vector3.down, out tireRay, suspensionRestDist);
+        rayDidHit = Physics.Raycast(transform.position, -transform.up, out tireRay);
     }
 
     private void ApplySpringForce() {
@@ -66,7 +74,37 @@ public class Tire : MonoBehaviour
 
         // Show Suspension Force
         if (showSuspensionForce) {
-            Debug.DrawRay(transform.position, suspensionForce, Color.green);
+            Debug.DrawRay(transform.position, suspensionForce * forceDistanceScale, Color.green);
+        }
+
+
+        // world-space direction of the spring force.
+        Vector3 steeringDir = transform.right;
+
+        // world-space velocity of the suspension
+        // repeat of above
+
+        // what is the tire's velocity in the steering direction?
+        // note that steeringDir is a unit vector, so this returns the magnitude of tireWorldVel
+        // as projected onto steeringDir
+        float steeringVel = Vector3.Dot(steeringDir, tireWorldVel);
+
+        // the change in velocity that we're looking for is -steeringVel * gripFactor
+        // gripFactor is in range 0-1, 0 means no grip, 1 means full grip
+        float desiredVelChange = -steeringVel * tireGripFactor;
+
+        // turn change in velocity into an acceleration (acceleration = change in vel / time)
+        // this will produce the acceleration necdessary to change the velocity by desiredVelChange in 1 physics step
+        float desiredAccel = desiredVelChange / Time.fixedDeltaTime;
+
+        // Force = Mass * Acceleration, so multiply by the mass of the tire and apply as a force!
+        Vector3 steeringForce = steeringDir * tireMass * desiredAccel;
+        carRigidBody.AddForceAtPosition(steeringForce, transform.position);
+        Debug.Log(steeringForce);
+
+        // Show Suspension Force
+        if (showSteeringForce) {
+            Debug.DrawRay(transform.position, steeringForce, Color.red);
         }
     }
 }
