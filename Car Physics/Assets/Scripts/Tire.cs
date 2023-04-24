@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Tire : MonoBehaviour
 {
+    [SerializeField] private Transform carTransform;
+
     [Header("Suspension")]
     [SerializeField] private float suspensionRestDist;
     [SerializeField] private float springStrength;
@@ -12,6 +14,9 @@ public class Tire : MonoBehaviour
     [Header("Steering")]
     [SerializeField] [Range(0,1)] private float tireGripFactor;
     [SerializeField] private float tireMass;
+
+    [Header("Acceleration")]
+    [SerializeField] private float carTopSpeed;
 
     [Header("Debug Options")]
     [SerializeField] private bool showGroundCheckRaycast;
@@ -23,6 +28,7 @@ public class Tire : MonoBehaviour
     private RaycastHit tireRay;
 
     private Rigidbody carRigidBody;
+    private float accelInput;
 
     private void Awake() {
         carRigidBody = GetComponentInParent<Rigidbody>();
@@ -42,6 +48,8 @@ public class Tire : MonoBehaviour
         // suspension spring force
         if (rayDidHit) {
             ApplySpringForce();
+            ApplySteeringForce();
+            ApplyAccelerationForce();
         }
     }
 
@@ -76,13 +84,14 @@ public class Tire : MonoBehaviour
         if (showSuspensionForce) {
             Debug.DrawRay(transform.position, suspensionForce * forceDistanceScale, Color.green);
         }
+    }
 
-
+    private void ApplySteeringForce() {
         // world-space direction of the spring force.
         Vector3 steeringDir = transform.right;
 
         // world-space velocity of the suspension
-        // repeat of above
+        Vector3 tireWorldVel = carRigidBody.GetPointVelocity(transform.position);
 
         // what is the tire's velocity in the steering direction?
         // note that steeringDir is a unit vector, so this returns the magnitude of tireWorldVel
@@ -102,9 +111,28 @@ public class Tire : MonoBehaviour
         carRigidBody.AddForceAtPosition(steeringForce, transform.position);
         Debug.Log(steeringForce);
 
-        // Show Suspension Force
+        // Show Steering Force
         if (showSteeringForce) {
             Debug.DrawRay(transform.position, steeringForce, Color.red);
+        }
+    }
+
+    private void ApplyAccelerationForce() {
+        // world-space direction of the acceleration/braking force.
+        Vector3 accelDir = transform.forward;
+
+        // acceleration torque
+        if (accelInput > 0f) {
+            // forward speed of the car (in the direction of driving)
+            float carSpeed = Vector3.Dot(carTransform.forward, carRigidBody.velocity);
+
+            // normalized car speed
+            float normalizedSpeed = Mathf.Clamp01(Mathf.Abs(carSpeed) / carTopSpeed);
+
+            // available torque
+            //float availableTorque = powerCurve.Evaluate(normalizedSpeed) * accelInput;
+
+            carRigidBody.AddForceAtPosition(accelDir /* availableTorque*/, transform.position);
         }
     }
 }
