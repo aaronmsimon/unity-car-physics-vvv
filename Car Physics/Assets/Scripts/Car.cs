@@ -2,10 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Tire : MonoBehaviour
+public class Car : MonoBehaviour
 {
     [Header("Tire Info")]
-    [SerializeField] private Transform carTransform;
     [SerializeField] private bool steering;
     [SerializeField] private float maxSteerAngle;
     [SerializeField] private bool accelerating;
@@ -20,6 +19,7 @@ public class Tire : MonoBehaviour
     [SerializeField] private float tireMass;
 
     [Header("Acceleration")]
+    [SerializeField] private float carTorque;
     [SerializeField] private float carTopSpeed;
 
     [Header("Debug Options")]
@@ -30,18 +30,21 @@ public class Tire : MonoBehaviour
     [SerializeField] private bool showAccelerationForce;
     [SerializeField] [Range(0,1)] private float forceDistanceScale;
 
+    // Modular variables
     private bool rayDidHit;
     private RaycastHit tireRay;
+    private float accelInput;
+    private float steerAngle;
     private float axesLength = .25f;
 
+    // Awake variables
+    private Transform carTransform;
     private Rigidbody carRigidBody;
     private PlayerControls playerControls;
 
-    private float steerAngle;
-    private float accelInput;
-
     private void Awake() {
-        carRigidBody = GetComponentInParent<Rigidbody>();
+        carTransform = transform;
+        carRigidBody = GetComponent<Rigidbody>();
         playerControls = new PlayerControls();
     }
 
@@ -54,55 +57,57 @@ public class Tire : MonoBehaviour
     }
 
     private void Update() {
-        // Check if grounded
-        GroundRaycast();
-
-        // Get Player Input
+        accelInput = playerControls.Driving.Acceleration.ReadValue<float>();
         float steerInput = playerControls.Driving.Steering.ReadValue<float>();
         steerAngle = Mathf.Clamp(steerInput * maxSteerAngle, -maxSteerAngle, maxSteerAngle);
-        accelInput = playerControls.Driving.Acceleration.ReadValue<float>();
 
-        // Show Ground Raycast
-        if (showGroundCheckRaycast) {
-            Debug.DrawRay(transform.position, -transform.up * tireRay.distance, Color.yellow);
-        }
-
-        // Draw Axes
-        if (drawAxes) {
-            Debug.DrawLine(transform.position, transform.position + transform.up * axesLength, Color.green);
-            Debug.DrawLine(transform.position + transform.right * axesLength, transform.position - transform.right * axesLength, Color.red);
-            Debug.DrawLine(transform.position, transform.position + transform.forward * axesLength, Color.blue);
-        }
     }
 
     private void FixedUpdate() {
-        if (rayDidHit) {
-            // suspension spring force
-            ApplySpringForce();
-            // steering force
-            ApplySteeringForce();
-            if (accelerating) {
-                // acceleration force
-                ApplyAccelerationForce();
+        Transform tires;
+        tires = transform.Find("Tires");
+
+        // Iterate through each child object
+        for (int i = 0; i < tires.childCount; i++)
+        {
+            Transform tire = tires.GetChild(i);
+            TireRaycast(tire);
+
+            if (tire.name.Substring(0,1) == "F") {
+                tire.Rotate(tire.up, steerAngle - tire.localEulerAngles.y, Space.Self);
+            }
+
+            if (rayDidHit) {
+                ApplySpringForce(tire);
+                ApplySteeringForce(tire);
+                ApplyAccelerationForce(tire);
+            }
+
+            // Draw Axes
+            if (drawAxes) {
+                Debug.DrawLine(tire.position, tire.position + tire.up * axesLength, Color.green);
+                Debug.DrawLine(tire.position + tire.right * axesLength, tire.position - tire.right * axesLength, Color.red);
+                Debug.DrawLine(tire.position, tire.position + tire.forward * axesLength, Color.blue);
             }
         }
+        
+    }
 
-        // turn steering tires
-        if (steering) {
-            transform.rotation = Quaternion.Euler(0f, steerAngle, 0f);
+    private void TireRaycast(Transform tireTransform) {
+        rayDidHit = Physics.Raycast(tireTransform.position, -tireTransform.up, out tireRay);
+
+        // Show Ground Raycast
+        if (showGroundCheckRaycast) {
+            Debug.DrawRay(tireTransform.position, -tireTransform.up * tireRay.distance, Color.yellow);
         }
     }
 
-    private void GroundRaycast() {
-        rayDidHit = Physics.Raycast(transform.position, -transform.up, out tireRay);
-    }
-
-    private void ApplySpringForce() {
+    private void ApplySpringForce(Transform tireTransform) {
         // world-space direction of the spring force.
-        Vector3 springDir = transform.up;
+        Vector3 springDir = tireTransform.up;
 
         // world-space velocity of this tire
-        Vector3 tireWorldVel = carRigidBody.GetPointVelocity(transform.position);
+        Vector3 tireWorldVel = carRigidBody.GetPointVelocity(tireTransform.position);
 
         // calculate offset from the raycast
         float offset = suspensionRestDist - tireRay.distance;
@@ -118,20 +123,20 @@ public class Tire : MonoBehaviour
         // apply the force at the location of this tire, in the direction
         // of the suspension
         Vector3 suspensionForce = springDir * force;
-        carRigidBody.AddForceAtPosition(suspensionForce, transform.position);
+        carRigidBody.AddForceAtPosition(suspensionForce, tireTransform.position);
 
         // Show Suspension Force
         if (showSuspensionForce) {
-            Debug.DrawRay(transform.position, suspensionForce * forceDistanceScale, Color.green);
+            Debug.DrawLine(tireTransform.position, tireTransform.position + suspensionForce * forceDistanceScale, Color.green);
         }
     }
 
-    private void ApplySteeringForce() {
+    private void ApplySteeringForce(Transform tireTransform) {
         // world-space direction of the spring force.
-        Vector3 steeringDir = transform.right;
+        Vector3 steeringDir = tireTransform.right;
 
         // world-space velocity of the suspension
-        Vector3 tireWorldVel = carRigidBody.GetPointVelocity(transform.position);
+        Vector3 tireWorldVel = carRigidBody.GetPointVelocity(tireTransform.position);
 
         // what is the tire's velocity in the steering direction?
         // note that steeringDir is a unit vector, so this returns the magnitude of tireWorldVel
@@ -152,13 +157,13 @@ public class Tire : MonoBehaviour
 
         // Show Steering Force
         if (showSteeringForce) {
-            Debug.DrawRay(transform.position, steeringForce, Color.red);
+            Debug.DrawRay(tireTransform.position, steeringForce, Color.red);
         }
     }
 
-    private void ApplyAccelerationForce() {
+    private void ApplyAccelerationForce(Transform tireTransform) {
         // world-space direction of the acceleration/braking force.
-        Vector3 accelDir = transform.forward;
+        Vector3 accelDir = tireTransform.forward;
 
         // acceleration torque
         if (accelInput > 0f) {
@@ -170,14 +175,14 @@ public class Tire : MonoBehaviour
 
             // available torque
             //float availableTorque = powerCurve.Evaluate(normalizedSpeed) * accelInput;
-            float availableTorque = accelInput;
+            float availableTorque = carTorque;
             Vector3 accelerationForce = accelDir * availableTorque;
 
-            carRigidBody.AddForceAtPosition(accelerationForce, transform.position);
+            carRigidBody.AddForceAtPosition(accelerationForce, tireTransform.position);
 
             // Show Acceleration Force
             if (showAccelerationForce) {
-                Debug.DrawRay(transform.position, accelerationForce, Color.blue);
+                Debug.DrawLine(tireTransform.position, tireTransform.position + accelerationForce, Color.blue);
             }
         }
     }
