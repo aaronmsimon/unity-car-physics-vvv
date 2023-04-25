@@ -44,12 +44,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06a4b5d54baf6284fafee3c9f35cbbab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  carTransform: {fileID: 0}
+  steering: 0
+  accelerating: 0
   suspensionRestDist: 0.55
   springStrength: 100
   springDamper: 20
   tireGripFactor: 0.5
   tireMass: 1
+  carTopSpeed: 0
+  drawAxes: 0
   showGroundCheckRaycast: 1
   showSuspensionForce: 1
   showSteeringForce: 1
+  showAccelerationForce: 0
   forceDistanceScale: 0.02
